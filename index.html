@@ -7,153 +7,144 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { 
-            --accent: #7d5fff; 
-            --bg: #17212b; 
-            --yellow: #ffff00; 
-            --text: #ffffff;
-            --bot-bubble: #242f3d;
-            --user-bubble: #2b394a; /* Fondo un poco diferente para el usuario */
-            --user-name: #4ecb71; /* Verde para el nombre del usuario */
+            --accent: #7d5fff; --bg: #17212b; --yellow: #ffff00; 
+            --bot-bubble: #242f3d; --user-bubble: #2b5278; --user-name: #4ecb71; 
         }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg); 
-            color: var(--text); 
-            margin: 0; padding: 0; height: 100vh; 
-            display: flex; flex-direction: column; overflow: hidden; 
-        }
+        /* Chat */
+        #chat-window { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .bubble { padding: 10px 14px; border-radius: 12px; max-width: 80%; line-height: 1.4; font-size: 15px; }
+        
+        /* Alineación */
+        .bot-msg { align-self: flex-start; background-color: var(--bot-bubble); }
+        .user-msg { align-self: flex-end; background-color: var(--user-bubble); text-align: right; }
 
-        /* Área de Chat */
-        #chat-window { 
-            flex-grow: 1; 
-            padding: 15px; 
-            overflow-y: auto; 
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        /* Estilo General de Burbuja (Alineadas a la izquierda) */
-        .bubble {
-            padding: 10px 14px;
-            border-radius: 12px;
-            max-width: 85%;
-            align-self: flex-start; /* Todo a la izquierda */
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            line-height: 1.4;
-            font-size: 15px;
-        }
-
-        /* Diferenciación por tipo */
-        .bot-msg { background-color: var(--bot-bubble); }
-        .user-msg { background-color: var(--user-bubble); border-left: 3px solid var(--user-name); }
-
-        .name-label {
-            font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-        }
+        .name-label { font-weight: bold; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; }
+        .user-label { color: var(--user-name); }
         .bot-label { color: var(--accent); }
-        .user-label { color: var(--user-name); } /* Nombre en verde */
 
-        /* Botón Footer Cuadrado */
-        #btn-entrar { 
-            background-color: var(--yellow); 
-            color: #000; border: none; font-weight: 700; 
-            padding: 22px; width: 100%; font-size: 17px; 
-            cursor: pointer; text-transform: uppercase;
-        }
+        /* Contenedor Inferior */
+        #footer { background: #17212b; border-top: 1px solid #2b394a; }
+        .input-row { display: flex; padding: 10px; gap: 8px; background: #0e1621; }
+        #msg-input { flex-grow: 1; background: #242f3d; border: 1px solid #3b4754; border-radius: 20px; color: white; padding: 10px 15px; outline: none; }
+        
+        .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--accent); }
 
-        /* Menú Flotante */
+        #btn-entrar { background-color: var(--yellow); color: #000; border: none; font-weight: 700; padding: 18px; width: 100%; font-size: 17px; cursor: pointer; text-transform: uppercase; }
+
+        /* Menú y Overlay */
         #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10; }
-        #modal-menu { 
-            display: none; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); 
-            background: #1c2733; padding: 20px; border-radius: 15px; width: 88%; max-width: 400px; 
-            z-index: 20; flex-direction: column; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
+        #modal-menu { display: none; position: fixed; bottom: 150px; left: 50%; transform: translateX(-50%); background: #1c2733; padding: 20px; border-radius: 15px; width: 88%; z-index: 20; flex-direction: column; gap: 10px; }
         .active { display: flex !important; }
-
-        .grid-btn { background: #2b3744; border: none; color: #fff; padding: 14px 5px; border-radius: 10px; font-size: 11px; cursor: pointer; flex: 1; }
+        .grid-btn { background: #2b3744; border: none; color: #fff; padding: 14px 5px; border-radius: 10px; font-size: 11px; flex: 1; cursor: pointer; }
         .row { display: flex; gap: 8px; width: 100%; }
-        .full-width { width: 100%; }
     </style>
 </head>
 <body>
 
     <div id="chat-window">
-        <div class="bubble bot-msg">
-            <div class="name-label bot-label">YTnews</div>
-            Consola lista. Pulsa MENU para ver las opciones disponibles.
-        </div>
+        <div class="bubble bot-msg"><div class="name-label bot-label">YTnews</div>Consola activa.</div>
     </div>
 
-    <button id="btn-entrar" onclick="toggleMenu()">MENU</button>
+    <div id="footer">
+        <div class="input-row">
+            <input type="text" id="msg-input" placeholder="Escribe un mensaje...">
+            <button class="icon-btn" onclick="enviarTexto()">➤</button>
+            <button id="mic-btn" class="icon-btn" onclick="toggleGrabacion()">🎙️</button>
+        </div>
+        <button id="btn-entrar" onclick="toggleMenu()">MENU</button>
+    </div>
 
     <div id="overlay" onclick="toggleMenu()"></div>
-
     <div id="modal-menu">
         <div class="row">
             <button class="grid-btn" onclick="enviarDatos('Comenzar')">Comenzar</button>
             <button class="grid-btn" onclick="enviarDatos('Video Individual')">Video Individual</button>
             <button class="grid-btn" onclick="enviarDatos('Extraer Canal')">Extraer Canal</button>
         </div>
-        <button class="grid-btn full-width" onclick="enviarDatos('Extraer Texto / Web')">Extraer Texto / Web</button>
+        <button class="grid-btn" style="width:100%" onclick="enviarDatos('Extraer Texto / Web')">Extraer Texto / Web</button>
         <div class="row">
-            <button class="grid-btn" onclick="enviarDatos('Información y Estadísticas')">Info & Stats</button>
-            <button class="grid-btn" onclick="enviarDatos('Hora de Lanzamiento')">Hora Lanzamiento</button>
+            <button class="grid-btn" onclick="enviarDatos('Info & Stats')">Info & Stats</button>
+            <button class="grid-btn" onclick="enviarDatos('Hora Lanzamiento')">Hora Lanzamiento</button>
         </div>
         <div class="row">
-            <button class="grid-btn" onclick="enviarDatos('Lista de Canales')">Canales</button>
-            <button class="grid-btn" onclick="enviarDatos('Añadir Canal')">Añadir</button>
-            <button class="grid-btn" onclick="enviarDatos('Eliminar Canal')">Eliminar</button>
+            <button class="grid-btn" onclick="enviarDatos('Canales')">Canales</button>
+            <button class="grid-btn" onclick="enviarDatos('Añadir')">Añadir</button>
+            <button class="grid-btn" onclick="enviarDatos('Eliminar')">Eliminar</button>
         </div>
     </div>
 
     <script>
         const webapp = window.Telegram.WebApp;
-        webapp.ready();
-        webapp.expand();
+        webapp.ready(); webapp.expand();
+        const webhookUrl = 'https://n8n.euskai.net/webhook/tu-id-aqui';
 
         function toggleMenu() {
             document.getElementById('modal-menu').classList.toggle('active');
             document.getElementById('overlay').classList.toggle('active');
         }
 
-        function agregarMensaje(tipo, nombre, texto) {
+        function agregarMsg(tipo, nombre, texto) {
             const chat = document.getElementById('chat-window');
             const div = document.createElement('div');
-            const claseBurbuja = tipo === 'bot' ? 'bot-msg' : 'user-msg';
-            const claseLabel = tipo === 'bot' ? 'bot-label' : 'user-label';
-            
-            div.className = `bubble ${claseBurbuja}`;
-            div.innerHTML = `<div class="name-label ${claseLabel}">${nombre}</div>${texto}`;
-            
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
+            div.className = `bubble ${tipo === 'bot' ? 'bot-msg' : 'user-msg'}`;
+            div.innerHTML = `<div class="name-label ${tipo === 'bot' ? 'bot-label' : 'user-label'}">${nombre}</div>${texto}`;
+            chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
         }
 
-        function enviarDatos(nombreBoton) {
-            const nombreUsuario = webapp.initDataUnsafe.user?.first_name || "Usuario";
-            
-            // Mensaje del usuario (en verde y fondo distinto)
-            agregarMensaje('user', nombreUsuario, "Ejecutar comando: " + nombreBoton);
-            toggleMenu();
+        function enviarTexto() {
+            const input = document.getElementById('msg-input');
+            if(!input.value) return;
+            const msg = input.value;
+            agregarMsg('user', webapp.initDataUnsafe.user?.first_name || 'Tú', msg);
+            input.value = '';
+            enviarAlWebhook({ tipo: 'texto', contenido: msg });
+        }
 
-            fetch('https://n8n.euskai.net/webhook/tu-id-aqui', {
+        function enviarDatos(boton) {
+            agregarMsg('user', webapp.initDataUnsafe.user?.first_name || 'Tú', "Comando: " + boton);
+            toggleMenu();
+            enviarAlWebhook({ tipo: 'boton', contenido: boton });
+        }
+
+        function enviarAlWebhook(data) {
+            fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    boton_pulsado: nombreBoton,
-                    user_id: webapp.initDataUnsafe.user?.id 
-                })
+                body: JSON.stringify({ ...data, user_id: webapp.initDataUnsafe.user?.id })
             })
             .then(res => res.json())
-            .then(data => { 
-                if(data.respuesta) agregarMensaje('bot', 'YTnews', data.respuesta); 
-            })
-            .catch(err => agregarMensaje('bot', 'Sistema', "Error de conexión."));
+            .then(d => { if(d.respuesta) agregarMsg('bot', 'YTnews', d.respuesta); });
+        }
+
+        // --- LÓGICA DE AUDIO ---
+        let mediaRecorder;
+        let chunks = [];
+
+        async function toggleGrabacion() {
+            const btn = document.getElementById('mic-btn');
+            if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' });
+                    chunks = [];
+                    agregarMsg('user', 'Tú', '🎤 Nota de voz enviada');
+                    
+                    const reader = new FileReader();
+                    reader.readAsDataURL(blob);
+                    reader.onloadend = () => {
+                        enviarAlWebhook({ tipo: 'audio', contenido: reader.result });
+                    };
+                };
+                mediaRecorder.start();
+                btn.innerText = "🛑";
+            } else {
+                mediaRecorder.stop();
+                btn.innerText = "🎙️";
+            }
         }
     </script>
 </body>
