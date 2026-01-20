@@ -3,126 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Plataforma YouTube</title>
+    <title>YTnews</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { 
-            font-family: sans-serif; 
-            background-color: var(--tg-theme-bg-color, #fff); 
-            color: var(--tg-theme-text-color, #000); 
-            padding: 20px; 
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .btn { 
-            display: block; 
-            width: 100%; 
-            padding: 15px; 
-            background-color: var(--tg-theme-button-color, #3390ec); 
-            color: var(--tg-theme-button-text-color, #fff); 
-            border: none; 
-            border-radius: 8px; 
-            font-size: 16px; 
-            font-weight: bold;
-            cursor: pointer; 
-            transition: opacity 0.2s;
-        }
-        .btn:active { opacity: 0.8; }
-        .input-group { margin-bottom: 5px; }
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            box-sizing: border-box; 
-            border-radius: 8px; 
-            border: 1px solid var(--tg-theme-hint-color, #ccc); 
-            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            color: var(--tg-theme-text-color, #000);
-        }
-        h3 { text-align: center; margin-bottom: 20px; }
+        body { font-family: sans-serif; background-color: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; height: 100vh; }
+        
+        /* Contenedor de mensajes (Chatbot) */
+        #chat-window { width: 100%; max-width: 400px; height: 150px; background: #2c2c2c; border-radius: 10px; margin-bottom: 20px; padding: 10px; overflow-y: auto; border: 1px solid #7d5fff; font-size: 14px; }
+        .msg { margin-bottom: 8px; }
+        .bot-msg { color: #a29bfe; }
+
+        /* Vistas */
+        .view { display: none; width: 100%; max-width: 400px; flex-direction: column; gap: 10px; }
+        .active { display: flex; }
+
+        /* Botones */
+        button { background-color: #2c2c2c; border: 2px solid #7d5fff; color: #a29bfe; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 11px; }
+        .row { display: flex; gap: 10px; }
+        .row button { flex: 1; }
+        
+        /* Botón de Entrada (Amarillo/Negro) */
+        #btn-entrar { background-color: #ffff00; color: #000000; border: none; font-size: 18px; padding: 20px; width: 100%; }
+        #btn-entrar span { display: block; font-size: 12px; }
     </style>
 </head>
 <body>
-    <h3>🎛️ Panel de Control</h3>
-    
-    <button class="btn" onclick="sendToN8n('información y estadísticas')">📊 Ver Estadísticas</button>
-    <button class="btn" onclick="sendToN8n('lista de canales')">📺 Mis Canales</button>
-    <button class="btn" onclick="sendToN8n('descargar audio')">🎧 Descargar Audio</button>
 
-    <hr style="width: 100%; border: 0; border-top: 1px solid var(--tg-theme-hint-color, #eee); margin: 20px 0;">
-
-    <div class="input-group">
-        <input type="text" id="urlInput" placeholder="Pega aquí la URL del video...">
+    <div id="chat-window">
+        <div class="msg bot-msg">YTnews: Esperando instrucción...</div>
     </div>
-    <button class="btn" onclick="sendCustomAction()">Enviar URL / Comando</button>
+
+    <div id="vista-entrada" class="view active">
+        <button id="btn-entrar" onclick="mostrarMenu()">
+            DESCARGAR EN 
+            <span style="font-size: 24px;">APP STORE</span>
+        </button>
+    </div>
+
+    <div id="vista-menu" class="view">
+        <div class="row">
+            <button onclick="enviarDatos('COMENZAR')">COMENZAR</button>
+            <button onclick="enviarDatos('VIDEO INDIVIDUAL')">VIDEO INDIVIDUAL</button>
+            <button onclick="enviarDatos('EXTRAER CANAL')">EXTRAER CANAL</button>
+        </div>
+        <button onclick="enviarDatos('EXTRAER TEXTO / WEB')">EXTRAER TEXTO / WEB</button>
+        <div class="row">
+            <button onclick="enviarDatos('INFORMACIÓN Y ESTADÍSTICAS')">INFORMACIÓN Y ESTADÍSTICAS</button>
+            <button onclick="enviarDatos('HORA DE LANZAMIENTO')">HORA DE LANZAMIENTO</button>
+        </div>
+        <div class="row">
+            <button onclick="enviarDatos('LISTA DE CANALES')">LISTA DE CANALES</button>
+            <button onclick="enviarDatos('AÑADIR CANAL')">AÑADIR CANAL</button>
+            <button onclick="enviarDatos('ELIMINAR CANAL')">ELIMINAR CANAL</button>
+        </div>
+    </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Expande la app para usar toda la pantalla disponible
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
 
-        // ✅ TU URL DE N8N INTEGRADA
-        const N8N_WEBHOOK_URL = 'https://n8n.euskai.net/webhook-test/6ebdbb22-5823-44ee-a6c4-d6490db79e2f'; 
-
-      function sendToN8n(actionText) {
-            // Usamos 'let' en lugar de 'const' para poder modificarlo si hace falta
-            let user = tg.initDataUnsafe.user;
-            
-            // --- CORRECCIÓN PARA PRUEBAS ---
-            if (!user) {
-                // Si no detecta Telegram, usamos el usuario de prueba y SEGUIMOS ADELANTE
-                console.log("Modo prueba: Usando usuario simulado");
-                user = { 
-                    id: 6735676248, 
-                    username: 'test_user', 
-                    first_name: 'Test' 
-                };
-                
-                // He quitado el 'return' para que el código continúe ejecutándose
-            }
-            // -------------------------------
-
-            // Efecto visual de carga
-            tg.MainButton.showProgress();
-
-            const payload = {
-                user_id: user.id,
-                username: user.username || 'Anonimo',
-                first_name: user.first_name,
-                action: actionText 
-            };
-
-            fetch(N8N_WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(response => {
-                tg.MainButton.hideProgress();
-                if (response.ok) {
-                    // Solo cerramos la app si estamos realmente en Telegram
-                    if (tg.initDataUnsafe.user) {
-                        tg.close();
-                    } else {
-                        alert("✅ Enviado correctamente a n8n (Modo Prueba)");
-                    }
-                } else {
-                    alert('❌ Error en n8n: ' + response.status);
-                }
-            })
-            .catch(error => {
-                tg.MainButton.hideProgress();
-                alert('❌ Error de conexión. ¿Está el workflow activo?');
-                console.error(error);
-            });
+        function mostrarMenu() {
+            document.getElementById('vista-entrada').classList.remove('active');
+            document.getElementById('vista-menu').classList.add('active');
         }
 
-        function sendCustomAction() {
-            const text = document.getElementById('urlInput').value;
-            if(text.trim()) {
-                sendToN8n(text); 
-            } else {
-                alert("Por favor escribe algo o pega una URL.");
-            }
+        function agregarMensaje(texto) {
+            const chat = document.getElementById('chat-window');
+            const div = document.createElement('div');
+            div.className = 'msg bot-msg';
+            div.innerText = "Respuesta: " + texto;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function enviarDatos(nombreBoton) {
+            agregarMensaje("Procesando " + nombreBoton + "...");
+            
+            fetch('https://n8n.euskai.net/webhook/tu-id-aqui', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    boton_pulsado: nombreBoton,
+                    user_id: webapp.initDataUnsafe.user?.id 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.respuesta) agregarMensaje(data.respuesta);
+            })
+            .catch(error => console.error('Error:', error));
         }
     </script>
 </body>
